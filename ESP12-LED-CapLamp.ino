@@ -9,9 +9,9 @@
 #include <WiFiUdp.h>
  
 //INPUT CONSTANTS
-const char* ledID = "LED007"; //Name of sensor
-const char* buttonID = "BUT007"; //Name of sensor
-const char* deviceDescription = "Capacitive Sensor Lamp";
+const char* ledID = "LED001"; //Name of sensor
+const char* buttonID = "BUT001"; //Name of sensor
+const char* deviceDescription = "Bedroom Lamp";
 const char* ssid = "TheSubway"; //Enter your WiFi network name here in the quotation marks
 const char* password = "vanillamoon576"; //Enter your WiFi pasword here in the quotation marks
 unsigned int localPort = 5007;  //UDP send port
@@ -25,7 +25,7 @@ const unsigned int calibrateSamples=60; //These will be quicksorted so don't exc
 const float thresholdSensitivity=3.4;
 const unsigned int sensorArrayLength=5;
 const unsigned int defaultFadeSpeed=10;
-const unsigned int longPressLength=900; //Time in milliseconds for a long press
+const unsigned int longPressLength=600; //Time in milliseconds for a long press
 const unsigned int longerPressLength=3000; //Time in milliseconds for a longer press (all off)
 const unsigned int PWMTable[101] = {0,1,2,3,5,6,7,8,9,10,12,13,14,16,18,20,21,24,26,28,31,33,36,39,42,45,49,52,56,60,64,68,72,77,82,87,92,98,103,109,115,121,128,135,142,149,156,164,172,180,188,197,206,215,225,235,245,255,266,276,288,299,311,323,336,348,361,375,388,402,417,432,447,462,478,494,510,527,544,562,580,598,617,636,655,675,696,716,737,759,781,803,826,849,872,896,921,946,971,997,1023}; //0 to 100 values for brightnes
 const unsigned int reTriggerDelay=80;
@@ -404,17 +404,17 @@ void SetLedStates() {
   else if (longPressTriggered && (ledPinState==0)) { // Full power (or all off)
     longPressTriggered=false;
     SendUdpValue("LOG",buttonID,"100");
-    Serial.print("Full Power Triggered. ");
+    Serial.println("Full Power Triggered. ");
   }
   else if (longPressTriggered && (ledPinState>0)) { // Full power
     longPressTriggered=false;
     SendUdpValue("LOG",buttonID,"100");
-    Serial.print("Full Power Triggered. ");
+    Serial.println("Full Power Triggered. ");
   }
   else if (longerPressTriggered) { // Full power
     longerPressTriggered=false;
     SendUdpValue("LOG",buttonID,"all off");
-    Serial.print("All Off Triggered. ");
+    Serial.println("All Off Triggered. ");
   }
   pressed=false;
   
