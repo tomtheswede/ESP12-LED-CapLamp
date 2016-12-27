@@ -9,27 +9,28 @@
 #include <WiFiUdp.h>
  
 //INPUT CONSTANTS
-const char* ledID = "LED001"; //Name of sensor
-const char* buttonID = "BUT001"; //Name of sensor
-const char* deviceDescription = "Bedroom Lamp";
+const char* ledID = "LED005"; //Name of sensor
+const char* buttonID = "BUT005"; //Name of sensor
+const char* deviceDescription = "Hallway Lamp";
 const char* ssid = "TheSubway"; //Enter your WiFi network name here in the quotation marks
 const char* password = "vanillamoon576"; //Enter your WiFi pasword here in the quotation marks
 unsigned int localPort = 5007;  //UDP send port
 const char* ipAdd = "192.168.0.100"; //Server address
 byte packetBuffer[512]; //buffer for incoming packets
-const unsigned int switchPin=15; //(0 on esp12)
+const unsigned int switchPin=2; //(0 on esp12)
 const unsigned int sensorPin=4; //Must be an interupt pin (4 on esp12)
 const unsigned int ledPin=5; // (5 on esp12)
-const unsigned int sensorSamples=200; //10000 samples gives a value return rate of 2 per second. 1000 is good for continuous monitor
-const unsigned int calibrateSamples=60; //These will be quicksorted so don't exceed ~100
+const unsigned int sensorSamples=300; //10000 samples gives a value return rate of 2 per second. 1000 is good for continuous monitor
+const unsigned int calibrateSamples=40; //These will be quicksorted so don't exceed ~100
 const float thresholdSensitivity=3.4;
 const unsigned int sensorArrayLength=5;
 const unsigned int defaultFadeSpeed=10;
 const unsigned int longPressLength=600; //Time in milliseconds for a long press
 const unsigned int longerPressLength=3000; //Time in milliseconds for a longer press (all off)
 const unsigned int PWMTable[101] = {0,1,2,3,5,6,7,8,9,10,12,13,14,16,18,20,21,24,26,28,31,33,36,39,42,45,49,52,56,60,64,68,72,77,82,87,92,98,103,109,115,121,128,135,142,149,156,164,172,180,188,197,206,215,225,235,245,255,266,276,288,299,311,323,336,348,361,375,388,402,417,432,447,462,478,494,510,527,544,562,580,598,617,636,655,675,696,716,737,759,781,803,826,849,872,896,921,946,971,997,1023}; //0 to 100 values for brightnes
-const unsigned int reTriggerDelay=80;
-const long tooLongPressLength=10000;
+const unsigned int reTriggerDelay=80; //minimum time in millis between button presses
+const unsigned long tooLongPressLength=15000;
+const unsigned long calibrateTimer=21600000; //21600000 is 6 hours
 
 //GLOBAL VARIABLES
 String data = "";
@@ -97,10 +98,11 @@ void sensorTimer() { //What happens when the sensor pin changes value
 //-----------------------------------------------------------------------------
 
 void RecalibrateCheck() {
-  if (!calibrateTrigger && calibratePrimer && (millis()-calibrationTime>calibrationFrequency) /*&& (millis()-calibrationTime<calibrationFrequency-10)**/) {
+  if (!calibrateTrigger && ((calibratePrimer && (millis()-calibrationTime>calibrationFrequency)) || (millis()-pressTime>calibrateTimer))) {
     Serial.println("Recallibrating...");
     calibratePrimer=false;
     calibrateTrigger=true;
+    pressTime=millis();
   }
 }
 
@@ -149,7 +151,7 @@ void setupLines() {
 //-----------------------------------------------------------------------------
 
 void SumSensorSamples() {
-  if (micros()-switchTime>90) { //This resets the timer if an interupt stuffs up a state change.
+  if (micros()-switchTime>6000) { //This resets the timer if an interupt stuffs up a state change.
     sensorTime=micros()-switchTime;
     //Serial.println("Switch pin value timed out and reset");
     recordAvail=true;
@@ -175,7 +177,7 @@ void SumSensorSamples() {
 void codeBetweenReadings() {
   CalibrateSensor();  
   DetectTrigger();
-  //Serial.println(sensorVal); //------------Uncomment this if you want to see the values coming out of the sensor
+  Serial.println(sensorVal); //------------Uncomment this if you want to see the values coming out of the sensor---------
   data=ParseUdpPacket(); //Code for receiving UDP messages
   if (data!="") {
     ProcessLedMessage(data);//Conditionals for switching based on LED signal
@@ -206,8 +208,7 @@ void CalibrateSensor() {
     Serial.print(maxValue);
     Serial.print(", ");
     Serial.println(triggerPoint);
-    triggered=false; //reset to off
-    SendUdpValue("LOG",ledID,"off");
+    triggered=false; //reset to trigger off if not already
   }
 }
 
